@@ -91,15 +91,18 @@ class TikTokRemover:
         print(PURPLE + "Tracking mouse position...")
         print()
 
+        clicked = False
         try:
             while True:
                 x, y = pyautogui.position()
                 print(PURPLE + f"\rCurrent position: X:{x:4d} Y:{y:4d} (Click to confirm)", end='', flush=True)
 
-                if pyautogui.mouseDown():
+                if pyautogui.mouseDown() and not clicked:
                     self.click_x = x
                     self.click_y = y
-                    time.sleep(0.3)
+                    clicked = True
+                    while pyautogui.mouseDown():
+                        time.sleep(0.01)
                     break
 
                 time.sleep(0.01)
