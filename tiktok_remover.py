@@ -7,6 +7,7 @@ GitHub: https://github.com/ravejsreal/tiktok-repost-remover
 import os
 import sys
 import time
+import threading
 from pathlib import Path
 
 missing_packages = []
@@ -63,6 +64,8 @@ class TikTokRemover:
         self.click_y = 318
         self.delay = 2.0
         self.count = 0
+        self.running = False
+        self.start_time = 0
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -82,7 +85,43 @@ class TikTokRemover:
         secs = int(seconds % 60)
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
+    def set_position(self):
+        self.print_header()
+        print(PURPLE + "Move your mouse to the repost button and click to set position")
+        print(PURPLE + "Tracking mouse position...")
+        print()
+
+        try:
+            while True:
+                x, y = pyautogui.position()
+                print(PURPLE + f"\rCurrent position: X:{x:4d} Y:{y:4d} (Click to confirm)", end='', flush=True)
+
+                if pyautogui.mouseDown():
+                    self.click_x = x
+                    self.click_y = y
+                    time.sleep(0.3)
+                    break
+
+                time.sleep(0.01)
+
+        except KeyboardInterrupt:
+            pass
+
+        print()
+        print()
+        print(PURPLE + f"Position set to: X:{self.click_x} Y:{self.click_y}")
+        print()
+        input(PURPLE + "Press Enter to continue...")
+
+    def display_thread(self):
+        while self.running:
+            elapsed = time.time() - self.start_time
+            print(PURPLE + f"\rReposts removed: {self.count} | Time: {self.format_time(elapsed)}", end='', flush=True)
+            time.sleep(0.1)
+
     def run(self):
+        self.set_position()
+
         self.print_header()
         print(PURPLE + f"Click Position: X:{self.click_x} Y:{self.click_y}")
         print(PURPLE + f"Delay: {self.delay} seconds")
@@ -95,20 +134,27 @@ class TikTokRemover:
             time.sleep(1)
 
         print()
-        print(PURPLE + "Running... (Press Ctrl+C to stop)")
+        print(PURPLE + "Running... (Press 'q' to stop)")
         print()
 
-        start_time = time.time()
+        self.running = True
+        self.start_time = time.time()
+
+        display = threading.Thread(target=self.display_thread, daemon=True)
+        display.start()
 
         try:
+            import msvcrt
             while True:
+                if msvcrt.kbhit():
+                    key = msvcrt.getch().decode('utf-8').lower()
+                    if key == 'q':
+                        break
+
                 pyautogui.moveTo(self.click_x, self.click_y)
                 time.sleep(0.1)
                 pyautogui.click()
                 self.count += 1
-
-                elapsed = time.time() - start_time
-                print(PURPLE + f"\rReposts removed: {self.count} | Time: {self.format_time(elapsed)}", end='', flush=True)
 
                 time.sleep(self.delay)
 
@@ -117,16 +163,19 @@ class TikTokRemover:
                 time.sleep(self.delay)
 
         except KeyboardInterrupt:
-            elapsed = time.time() - start_time
-            print()
-            print()
-            print(PURPLE + "=" * 60)
-            print(PURPLE + f"Stopped!")
-            print(PURPLE + f"Total reposts removed: {self.count}")
-            print(PURPLE + f"Total time: {self.format_time(elapsed)}")
-            print(PURPLE + "=" * 60)
-            print()
-            input(PURPLE + "Press Enter to exit...")
+            pass
+
+        self.running = False
+        elapsed = time.time() - self.start_time
+        print()
+        print()
+        print(PURPLE + "=" * 60)
+        print(PURPLE + f"Stopped!")
+        print(PURPLE + f"Total reposts removed: {self.count}")
+        print(PURPLE + f"Total time: {self.format_time(elapsed)}")
+        print(PURPLE + "=" * 60)
+        print()
+        input(PURPLE + "Press Enter to exit...")
 
 
 if __name__ == "__main__":
