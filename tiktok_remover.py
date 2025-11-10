@@ -87,25 +87,24 @@ class TikTokRemover:
 
     def set_position(self):
         self.print_header()
-        print(PURPLE + "Move your mouse to the repost button and click to set position")
+        print(PURPLE + "Move your mouse to the repost button and press 'O' to confirm")
         print(PURPLE + "Tracking mouse position...")
         print()
 
-        clicked = False
         try:
+            import msvcrt
             while True:
                 x, y = pyautogui.position()
-                print(PURPLE + f"\rCurrent position: X:{x:4d} Y:{y:4d} (Click to confirm)", end='', flush=True)
+                print(PURPLE + f"\rCurrent position: X:{x:4d} Y:{y:4d} (Press 'O' to confirm)", end='', flush=True)
 
-                if pyautogui.mouseDown() and not clicked:
-                    self.click_x = x
-                    self.click_y = y
-                    clicked = True
-                    while pyautogui.mouseDown():
-                        time.sleep(0.01)
-                    break
+                if msvcrt.kbhit():
+                    key = msvcrt.getch().decode('utf-8').lower()
+                    if key == 'o':
+                        self.click_x = x
+                        self.click_y = y
+                        break
 
-                time.sleep(0.01)
+                time.sleep(0.05)
 
         except KeyboardInterrupt:
             pass
