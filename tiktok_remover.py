@@ -79,7 +79,7 @@ class TikTokRemover:
     def __init__(self):
         self.search_x = 1318
         self.search_y = 0
-        self.search_y_start = 320
+        self.search_y_start = 280
         self.search_y_end = 450
         self.delay = 2.0
         self.count = 0
