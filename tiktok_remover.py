@@ -115,11 +115,10 @@ class TikTokRemover:
             return False
 
     def find_clickable_position(self):
-        start_y = self.search_y_end
-        end_y = self.search_y_start
+        current_x, current_y = pyautogui.position()
 
-        pyautogui.moveTo(self.search_x, start_y, duration=0.2)
-        time.sleep(0.1)
+        start_y = min(current_y + 30, self.search_y_end)
+        end_y = self.search_y_start
 
         for y in range(start_y, end_y, -2):
             pyautogui.moveTo(self.search_x, y, duration=0.01)
