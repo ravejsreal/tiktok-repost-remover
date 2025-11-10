@@ -148,21 +148,28 @@ class TikTokRemover:
         try:
             import msvcrt
             while True:
-                if msvcrt.kbhit():
-                    key = msvcrt.getch().decode('utf-8').lower()
-                    if key == 'q':
-                        break
-
                 pyautogui.moveTo(self.click_x, self.click_y)
                 time.sleep(0.1)
                 pyautogui.click()
                 self.count += 1
 
-                time.sleep(self.delay)
+                for _ in range(int(self.delay * 10)):
+                    if msvcrt.kbhit():
+                        key = msvcrt.getch().decode('utf-8').lower()
+                        if key == 'q':
+                            self.running = False
+                            raise KeyboardInterrupt
+                    time.sleep(0.1)
 
                 pyautogui.press('down')
 
-                time.sleep(self.delay)
+                for _ in range(int(self.delay * 10)):
+                    if msvcrt.kbhit():
+                        key = msvcrt.getch().decode('utf-8').lower()
+                        if key == 'q':
+                            self.running = False
+                            raise KeyboardInterrupt
+                    time.sleep(0.1)
 
         except KeyboardInterrupt:
             pass
