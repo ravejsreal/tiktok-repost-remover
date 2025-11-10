@@ -22,6 +22,16 @@ try:
 except Exception as e:
     missing_packages.append("colorama")
 
+try:
+    import keyboard
+except Exception as e:
+    missing_packages.append("keyboard")
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except Exception as e:
+    missing_packages.append("pillow")
+
 if missing_packages:
     print("=" * 60)
     print("ERROR: Missing required packages".center(60))
@@ -38,7 +48,7 @@ if missing_packages:
         print()
         print("Installing packages...")
         import subprocess
-        result = subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pyautogui", "colorama"],
+        result = subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pyautogui", "colorama", "keyboard", "pillow"],
                               capture_output=True, text=True)
         print(result.stdout)
         if result.returncode == 0:
@@ -48,7 +58,7 @@ if missing_packages:
             os.execv(sys.executable, [sys.executable] + sys.argv)
         else:
             print("Installation failed. Try running manually:")
-            print("  pip install pyautogui colorama")
+            print("  pip install pyautogui colorama keyboard pillow")
             print()
             input("Press Enter to exit...")
     else:
@@ -66,6 +76,7 @@ class TikTokRemover:
         self.count = 0
         self.running = False
         self.start_time = 0
+        self.stop_requested = False
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -121,6 +132,37 @@ class TikTokRemover:
             print(PURPLE + f"\rReposts removed: {self.count} | Time: {self.format_time(elapsed)}", end='', flush=True)
             time.sleep(0.1)
 
+    def create_stats_image(self):
+        script_dir = Path(__file__).parent
+        output_path = script_dir / f"tiktok_stats_{int(time.time())}.png"
+
+        img = Image.new('RGB', (800, 400), color=(138, 43, 226))
+        draw = ImageDraw.Draw(img)
+
+        try:
+            font_large = ImageFont.truetype("arial.ttf", 48)
+            font_medium = ImageFont.truetype("arial.ttf", 32)
+            font_small = ImageFont.truetype("arial.ttf", 24)
+        except:
+            font_large = ImageFont.load_default()
+            font_medium = ImageFont.load_default()
+            font_small = ImageFont.load_default()
+
+        draw.text((400, 50), "TikTok Repost Remover", fill='white', anchor='mm', font=font_large)
+        draw.text((400, 120), "Stats", fill='white', anchor='mm', font=font_medium)
+
+        elapsed = time.time() - self.start_time
+        draw.text((400, 200), f"Reposts Removed: {self.count}", fill='white', anchor='mm', font=font_medium)
+        draw.text((400, 260), f"Total Time: {self.format_time(elapsed)}", fill='white', anchor='mm', font=font_medium)
+
+        draw.text((400, 350), "made by ravejsreal", fill='white', anchor='mm', font=font_small)
+
+        img.save(output_path)
+        return output_path
+
+    def on_q_pressed(self):
+        self.stop_requested = True
+
     def run(self):
         self.set_position()
 
@@ -139,6 +181,8 @@ class TikTokRemover:
         print(PURPLE + "Running... (Press 'q' to stop)")
         print()
 
+        keyboard.on_press_key('q', lambda _: self.on_q_pressed())
+
         self.running = True
         self.start_time = time.time()
 
@@ -146,35 +190,33 @@ class TikTokRemover:
         display.start()
 
         try:
-            import msvcrt
-            while True:
+            while not self.stop_requested:
                 pyautogui.moveTo(self.click_x, self.click_y)
                 time.sleep(0.1)
                 pyautogui.click()
                 self.count += 1
 
                 for _ in range(int(self.delay * 10)):
-                    if msvcrt.kbhit():
-                        key = msvcrt.getch().decode('utf-8').lower()
-                        if key == 'q':
-                            self.running = False
-                            raise KeyboardInterrupt
+                    if self.stop_requested:
+                        break
                     time.sleep(0.1)
+
+                if self.stop_requested:
+                    break
 
                 pyautogui.press('down')
 
                 for _ in range(int(self.delay * 10)):
-                    if msvcrt.kbhit():
-                        key = msvcrt.getch().decode('utf-8').lower()
-                        if key == 'q':
-                            self.running = False
-                            raise KeyboardInterrupt
+                    if self.stop_requested:
+                        break
                     time.sleep(0.1)
 
         except KeyboardInterrupt:
             pass
 
         self.running = False
+        keyboard.unhook_all()
+
         elapsed = time.time() - self.start_time
         print()
         print()
@@ -183,6 +225,19 @@ class TikTokRemover:
         print(PURPLE + f"Total reposts removed: {self.count}")
         print(PURPLE + f"Total time: {self.format_time(elapsed)}")
         print(PURPLE + "=" * 60)
+        print()
+
+        print(PURPLE + "Creating stats image...")
+        try:
+            image_path = self.create_stats_image()
+            print(PURPLE + f"Stats saved to: {image_path}")
+            print()
+            open_img = input(PURPLE + "Open stats image? (y/n): ").strip().lower()
+            if open_img == 'y':
+                os.startfile(image_path)
+        except Exception as e:
+            print(PURPLE + f"Error creating image: {e}")
+
         print()
         input(PURPLE + "Press Enter to exit...")
 
