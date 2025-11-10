@@ -78,6 +78,7 @@ PURPLE = Fore.MAGENTA + Style.BRIGHT
 class TikTokRemover:
     def __init__(self):
         self.search_x = 1318
+        self.search_y = 0
         self.search_y_start = 320
         self.search_y_end = 450
         self.delay = 2.0
@@ -85,6 +86,7 @@ class TikTokRemover:
         self.running = False
         self.start_time = 0
         self.stop_requested = False
+        self.first_click = True
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -113,16 +115,15 @@ class TikTokRemover:
             return False
 
     def find_clickable_position(self):
-        current_x, current_y = pyautogui.position()
-
         start_y = self.search_y_end
         end_y = self.search_y_start
 
-        pyautogui.moveTo(self.search_x, start_y, duration=0.3)
+        pyautogui.moveTo(self.search_x, start_y, duration=0.2)
+        time.sleep(0.1)
 
-        for y in range(start_y, end_y, -3):
-            pyautogui.moveTo(self.search_x, y, duration=0.02)
-            time.sleep(0.03)
+        for y in range(start_y, end_y, -2):
+            pyautogui.moveTo(self.search_x, y, duration=0.01)
+            time.sleep(0.02)
 
             if self.get_cursor_type():
                 return self.search_x, y
@@ -131,7 +132,7 @@ class TikTokRemover:
 
     def set_position(self):
         self.print_header()
-        print(PURPLE + "Move mouse to approximate X position of repost button")
+        print(PURPLE + "Move mouse EXACTLY over the repost button")
         print(PURPLE + "Tracking mouse position...")
         print()
 
@@ -145,6 +146,7 @@ class TikTokRemover:
                     key = msvcrt.getch().decode('utf-8').lower()
                     if key == 'o':
                         self.search_x = x
+                        self.search_y = y
                         break
 
                 time.sleep(0.05)
@@ -154,8 +156,8 @@ class TikTokRemover:
 
         print()
         print()
-        print(PURPLE + f"Search X position set to: {self.search_x}")
-        print(PURPLE + f"Will scan Y range: {self.search_y_start} to {self.search_y_end}")
+        print(PURPLE + f"First click position: X:{self.search_x} Y:{self.search_y}")
+        print(PURPLE + f"Will scan X:{self.search_x}, Y range: {self.search_y_start}-{self.search_y_end} for next clicks")
         print()
         input(PURPLE + "Press Enter to continue...")
 
@@ -224,13 +226,18 @@ class TikTokRemover:
 
         try:
             while not self.stop_requested:
-                click_x, click_y = self.find_clickable_position()
-
-                if click_x and click_y:
-                    pyautogui.click(click_x, click_y)
+                if self.first_click:
+                    pyautogui.click(self.search_x, self.search_y)
                     self.count += 1
+                    self.first_click = False
                 else:
-                    print(PURPLE + "\nButton not found, skipping...")
+                    click_x, click_y = self.find_clickable_position()
+
+                    if click_x and click_y:
+                        pyautogui.click(click_x, click_y)
+                        self.count += 1
+                    else:
+                        print(PURPLE + "\nButton not found, skipping...")
 
                 for _ in range(int(self.delay * 10)):
                     if self.stop_requested:
