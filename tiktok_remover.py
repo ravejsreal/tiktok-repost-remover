@@ -78,8 +78,8 @@ PURPLE = Fore.MAGENTA + Style.BRIGHT
 class TikTokRemover:
     def __init__(self):
         self.search_x = 1318
-        self.search_y_start = 250
-        self.search_y_end = 400
+        self.search_y_start = 320
+        self.search_y_end = 450
         self.delay = 2.0
         self.count = 0
         self.running = False
@@ -113,9 +113,16 @@ class TikTokRemover:
             return False
 
     def find_clickable_position(self):
-        for y in range(self.search_y_start, self.search_y_end, 5):
-            pyautogui.moveTo(self.search_x, y)
-            time.sleep(0.05)
+        current_x, current_y = pyautogui.position()
+
+        start_y = self.search_y_end
+        end_y = self.search_y_start
+
+        pyautogui.moveTo(self.search_x, start_y, duration=0.3)
+
+        for y in range(start_y, end_y, -3):
+            pyautogui.moveTo(self.search_x, y, duration=0.02)
+            time.sleep(0.03)
 
             if self.get_cursor_type():
                 return self.search_x, y
