@@ -32,6 +32,13 @@ try:
 except Exception as e:
     missing_packages.append("pillow")
 
+try:
+    import win32gui
+    import win32api
+    import win32con
+except Exception as e:
+    missing_packages.append("pywin32")
+
 if missing_packages:
     print("=" * 60)
     print("ERROR: Missing required packages".center(60))
@@ -48,7 +55,7 @@ if missing_packages:
         print()
         print("Installing packages...")
         import subprocess
-        result = subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pyautogui", "colorama", "keyboard", "pillow"],
+        result = subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pyautogui", "colorama", "keyboard", "pillow", "pywin32"],
                               capture_output=True, text=True)
         print(result.stdout)
         if result.returncode == 0:
@@ -58,7 +65,7 @@ if missing_packages:
             os.execv(sys.executable, [sys.executable] + sys.argv)
         else:
             print("Installation failed. Try running manually:")
-            print("  pip install pyautogui colorama keyboard pillow")
+            print("  pip install pyautogui colorama keyboard pillow pywin32")
             print()
             input("Press Enter to exit...")
     else:
@@ -70,8 +77,9 @@ PURPLE = Fore.MAGENTA + Style.BRIGHT
 
 class TikTokRemover:
     def __init__(self):
-        self.click_x = 1318
-        self.click_y = 318
+        self.search_x = 1318
+        self.search_y_start = 250
+        self.search_y_end = 400
         self.delay = 2.0
         self.count = 0
         self.running = False
@@ -96,9 +104,27 @@ class TikTokRemover:
         secs = int(seconds % 60)
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
+    def get_cursor_type(self):
+        try:
+            hcursor = win32gui.GetCursorInfo()[1]
+            hand_cursor = win32api.LoadCursor(0, win32con.IDC_HAND)
+            return hcursor == hand_cursor
+        except:
+            return False
+
+    def find_clickable_position(self):
+        for y in range(self.search_y_start, self.search_y_end, 5):
+            pyautogui.moveTo(self.search_x, y)
+            time.sleep(0.05)
+
+            if self.get_cursor_type():
+                return self.search_x, y
+
+        return None, None
+
     def set_position(self):
         self.print_header()
-        print(PURPLE + "Move your mouse to the repost button and press 'O' to confirm")
+        print(PURPLE + "Move mouse to approximate X position of repost button")
         print(PURPLE + "Tracking mouse position...")
         print()
 
@@ -111,8 +137,7 @@ class TikTokRemover:
                 if msvcrt.kbhit():
                     key = msvcrt.getch().decode('utf-8').lower()
                     if key == 'o':
-                        self.click_x = x
-                        self.click_y = y
+                        self.search_x = x
                         break
 
                 time.sleep(0.05)
@@ -122,7 +147,8 @@ class TikTokRemover:
 
         print()
         print()
-        print(PURPLE + f"Position set to: X:{self.click_x} Y:{self.click_y}")
+        print(PURPLE + f"Search X position set to: {self.search_x}")
+        print(PURPLE + f"Will scan Y range: {self.search_y_start} to {self.search_y_end}")
         print()
         input(PURPLE + "Press Enter to continue...")
 
@@ -167,7 +193,7 @@ class TikTokRemover:
         self.set_position()
 
         self.print_header()
-        print(PURPLE + f"Click Position: X:{self.click_x} Y:{self.click_y}")
+        print(PURPLE + f"Search X: {self.search_x}, Y Range: {self.search_y_start}-{self.search_y_end}")
         print(PURPLE + f"Delay: {self.delay} seconds")
         print()
         print(PURPLE + "Starting in 5 seconds... Switch to TikTok window!")
@@ -191,10 +217,13 @@ class TikTokRemover:
 
         try:
             while not self.stop_requested:
-                pyautogui.moveTo(self.click_x, self.click_y)
-                time.sleep(0.1)
-                pyautogui.click()
-                self.count += 1
+                click_x, click_y = self.find_clickable_position()
+
+                if click_x and click_y:
+                    pyautogui.click(click_x, click_y)
+                    self.count += 1
+                else:
+                    print(PURPLE + "\nButton not found, skipping...")
 
                 for _ in range(int(self.delay * 10)):
                     if self.stop_requested:
