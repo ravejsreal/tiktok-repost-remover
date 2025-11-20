@@ -7,7 +7,8 @@ Automatically removes all your TikTok reposts. Fast and efficient - removes abou
 
 ## Features
 
-✅ **Smart button detection** - finds the button even if it moves
+✅ **Color detection** - searches for the repost button color (#efc546) in a defined area
+✅ **Red rectangle overlay** - shows the search area while running
 ✅ **Live counter** - shows reposts removed and time elapsed
 ✅ **Global hotkey (q)** - stop from any window
 ✅ **Stats image** - generates a purple stats image when done
@@ -43,14 +44,18 @@ python tiktok_remover.py
 
 ## How It Works
 
-The script uses smart cursor detection to find clickable elements. Here's what happens:
+The script uses color detection to find the repost button. Here's what happens:
 
-1. **First click**: Clicks at the exact position you set
-2. **Subsequent clicks**: Scans vertically to find the button using cursor type detection (hand pointer)
-3. **Scrolls down**: Presses down arrow key to move to next repost
-4. **Repeats**: Continues with 2 second delays between actions
+1. **Set position**: You position your mouse over the repost button and press 'O'
+2. **Create search area**: A 40px wide × 200px tall rectangle is created centered on your position
+3. **Color search**: Searches for the exact color #efc546 (yellow repost button) within the rectangle
+4. **Click**: Instantly teleports cursor to the color and clicks
+5. **Move left**: Moves cursor 100px to the left
+6. **Scroll down**: Presses down arrow key to move to next repost
+7. **Wait**: 2 second delay before next search
+8. **Repeat**: Continues until you press 'q' to stop
 
-Shows you how many reposts have been removed and tracks total time running. When you stop it, generates a purple stats image.
+The red rectangle overlay stays visible the entire time so you can see the search area. Shows you how many reposts have been removed and tracks total time running. When you stop it, generates a purple stats image.
 
 ## Example
 
@@ -86,6 +91,5 @@ Perfect for cleaning up your TikTok profile when you've got dozens (or thousands
 - colorama
 - keyboard
 - pillow
-- pywin32
 
 All packages auto-install if missing when you run the script.

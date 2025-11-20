@@ -79,14 +79,15 @@ class TikTokRemover:
     def __init__(self):
         self.search_x = 1318
         self.search_y = 0
-        self.search_y_start = 280
-        self.search_y_end = 450
+        self.rect_width = 40
+        self.rect_height = 200
+        self.target_color = (239, 197, 70)
         self.delay = 2.0
         self.count = 0
         self.running = False
         self.start_time = 0
         self.stop_requested = False
-        self.first_click = True
+        self.rectangle_window = None
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -106,28 +107,39 @@ class TikTokRemover:
         secs = int(seconds % 60)
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
-    def get_cursor_type(self):
-        try:
-            hcursor = win32gui.GetCursorInfo()[1]
-            hand_cursor = win32api.LoadCursor(0, win32con.IDC_HAND)
-            return hcursor == hand_cursor
-        except:
-            return False
+    def find_color_in_rectangle(self):
+        left = self.search_x - (self.rect_width // 2)
+        top = self.search_y - (self.rect_height // 2)
 
-    def find_clickable_position(self):
-        current_x, current_y = pyautogui.position()
+        screenshot = pyautogui.screenshot(region=(left, top, self.rect_width, self.rect_height))
 
-        start_y = min(current_y + 30, self.search_y_end)
-        end_y = self.search_y_start
-
-        for y in range(start_y, end_y, -2):
-            pyautogui.moveTo(self.search_x, y, duration=0.01)
-            time.sleep(0.02)
-
-            if self.get_cursor_type():
-                return self.search_x, y
+        for y in range(self.rect_height):
+            for x in range(self.rect_width):
+                pixel = screenshot.getpixel((x, y))
+                if pixel == self.target_color:
+                    return left + x, top + y
 
         return None, None
+
+    def draw_rectangle(self, center_x, center_y):
+        import tkinter as tk
+
+        root = tk.Tk()
+        root.attributes('-transparentcolor', 'white')
+        root.attributes('-topmost', True)
+        root.overrideredirect(True)
+
+        left = center_x - (self.rect_width // 2)
+        top = center_y - (self.rect_height // 2)
+
+        root.geometry(f"{self.rect_width}x{self.rect_height}+{left}+{top}")
+
+        canvas = tk.Canvas(root, width=self.rect_width, height=self.rect_height, bg='white', highlightthickness=0)
+        canvas.pack()
+
+        canvas.create_rectangle(0, 0, self.rect_width-1, self.rect_height-1, outline='red', width=2)
+
+        return root
 
     def set_position(self):
         self.print_header()
@@ -146,6 +158,7 @@ class TikTokRemover:
                     if key == 'o':
                         self.search_x = x
                         self.search_y = y
+                        self.rectangle_window = self.draw_rectangle(x, y)
                         break
 
                 time.sleep(0.05)
@@ -155,10 +168,12 @@ class TikTokRemover:
 
         print()
         print()
-        print(PURPLE + f"First click position: X:{self.search_x} Y:{self.search_y}")
-        print(PURPLE + f"Will scan X:{self.search_x}, Y range: {self.search_y_start}-{self.search_y_end} for next clicks")
+        print(PURPLE + f"Click position set: X:{self.search_x} Y:{self.search_y}")
+        print(PURPLE + f"Rectangle: {self.rect_width}x{self.rect_height} centered at position")
         print()
-        input(PURPLE + "Press Enter to continue...")
+
+        if self.rectangle_window:
+            input(PURPLE + "Press Enter to continue...")
 
     def display_thread(self):
         while self.running:
@@ -201,7 +216,7 @@ class TikTokRemover:
         self.set_position()
 
         self.print_header()
-        print(PURPLE + f"Search X: {self.search_x}, Y Range: {self.search_y_start}-{self.search_y_end}")
+        print(PURPLE + f"Click position: X:{self.search_x}, Y:{self.search_y}")
         print(PURPLE + f"Delay: {self.delay} seconds")
         print()
         print(PURPLE + "Starting in 5 seconds... Switch to TikTok window!")
@@ -225,39 +240,30 @@ class TikTokRemover:
 
         try:
             while not self.stop_requested:
-                if self.first_click:
-                    pyautogui.click(self.search_x, self.search_y)
+                click_x, click_y = self.find_color_in_rectangle()
+
+                if click_x and click_y:
+                    pyautogui.click(click_x, click_y)
                     self.count += 1
-                    self.first_click = False
+
+                    current_x, current_y = pyautogui.position()
+                    pyautogui.moveTo(current_x - 100, current_y)
+
+                    pyautogui.press('down')
                 else:
-                    click_x, click_y = self.find_clickable_position()
+                    print(PURPLE + "\nColor not found in rectangle, skipping...")
+                    pyautogui.press('down')
 
-                    if click_x and click_y:
-                        pyautogui.click(click_x, click_y)
-                        self.count += 1
-                    else:
-                        print(PURPLE + "\nButton not found, skipping...")
-
-                for _ in range(int(self.delay * 10)):
-                    if self.stop_requested:
-                        break
-                    time.sleep(0.1)
-
-                if self.stop_requested:
-                    break
-
-                pyautogui.press('down')
-
-                for _ in range(int(self.delay * 10)):
-                    if self.stop_requested:
-                        break
-                    time.sleep(0.1)
+                time.sleep(self.delay)
 
         except KeyboardInterrupt:
             pass
 
         self.running = False
         keyboard.unhook_all()
+
+        if self.rectangle_window:
+            self.rectangle_window.destroy()
 
         elapsed = time.time() - self.start_time
         print()
